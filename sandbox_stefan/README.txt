@@ -1,0 +1,1 @@
+This is the playground for Stefan. Projects here do not interfere with projects outside this directory.
