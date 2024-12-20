@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsEvb", "CsEvb\CsEvb.csproj", "{ADA9B804-5CB3-4556-AC49-41399135F234}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsEvb.Tests", "CsEvb.Tests\CsEvb.Tests.csproj", "{56CACAA2-CA03-4F31-BBB8-6170035EF4EC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ADA9B804-5CB3-4556-AC49-41399135F234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADA9B804-5CB3-4556-AC49-41399135F234}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADA9B804-5CB3-4556-AC49-41399135F234}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADA9B804-5CB3-4556-AC49-41399135F234}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56CACAA2-CA03-4F31-BBB8-6170035EF4EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56CACAA2-CA03-4F31-BBB8-6170035EF4EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56CACAA2-CA03-4F31-BBB8-6170035EF4EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56CACAA2-CA03-4F31-BBB8-6170035EF4EC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
