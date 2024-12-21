@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using static CsEvb.F18A;
 
 namespace CsEvb
 {
@@ -26,7 +28,9 @@ namespace CsEvb
     public const uint MEMSize = 1u << (int)MEMBits;
     public const uint MEMMask = MEMSize - 1;
 
-    enum Opcode
+    //============================================================================
+
+    public enum Opcode
     {
       RET,
       EX,
@@ -63,7 +67,13 @@ namespace CsEvb
       limit
     }
 
-    enum Register
+    //============================================================================
+
+
+
+    //============================================================================
+
+    public enum Register
     {
       T,
       S,
@@ -80,7 +90,9 @@ namespace CsEvb
       limit
     }
 
-    enum Port
+    //============================================================================
+
+    public enum Port
     {
       UP,
       LEFT,
@@ -89,7 +101,9 @@ namespace CsEvb
       limit
     }
 
-    enum IOBitCtrl
+    //============================================================================
+
+    public enum IOBitCtrl
     {
       TRISTATE,
       WEAK_PULLDOWN,
@@ -98,7 +112,9 @@ namespace CsEvb
       limit
     }
 
-    enum IOBitWrite
+    //============================================================================
+
+    public enum IOBitWrite
     {
       PIN1_ctl = 0,
       PIN1_value = 1,
@@ -111,7 +127,9 @@ namespace CsEvb
       PIN17_value = 17,
     }
 
-    enum IOBitAltWrite
+    //============================================================================
+
+    public enum IOBitAltWrite
     {
       DA_lsb = 0,
       DA_msb = 11,
@@ -121,7 +139,9 @@ namespace CsEvb
       SR = 17,
     }
 
-    enum IOBitRead
+    //============================================================================
+
+    public enum IOBitRead
     {
       PIN1 = 1,
       PIN3 = 3,
@@ -137,7 +157,9 @@ namespace CsEvb
       PIN17 = 17,
     }
 
-    enum IOPortAddr
+    //============================================================================
+
+    public enum IOPortAddr
     {
       io = 0x08,
       data = 0x14,
@@ -158,19 +180,52 @@ namespace CsEvb
       rdlu = 0xf0,
     }
 
-    enum RomType
+
+    public string? AddrToString(uint addr)
+    {
+      switch (addr)
+      {
+        case 0x15d: return "io";
+        case 0x171: return "ldata";
+        case 0x141: return "data";
+        case 0x157: return "warp";
+        case 0x175: return "--l-";
+        case 0x115: return "-d--";
+        case 0x135: return "-dl-";
+        case 0x1d5: return "r---";
+        case 0x1f5: return "r-l-";
+        case 0x195: return "rd--";
+        case 0x1b5: return "rdl-";
+        case 0x145: return "---u";
+        case 0x165: return "--lu";
+        case 0x105: return "-d-u";
+        case 0x125: return "-dlu";
+        case 0x1c5: return "r--u";
+        case 0x1e5: return "r-lu";
+        case 0x185: return "rd-u";
+        case 0x1a5: return "rdlu";
+        default: break;
+      }
+      return null;
+    }
+
+    //============================================================================
+
+    public enum RomType
     {
       undefined,
       Basic,
       Analog,
       Digital,
-      Serdes_boot,
-      Sync_boot,
-      Async_boot,
-      Spi_boot,
+      SerdesBoot,
+      SyncBoot,
+      AsyncBoot,
+      SpiBoot,
       Wire1,
       limit
     }
+
+    //============================================================================
 
     public struct RegisterSet
     {
@@ -198,14 +253,221 @@ namespace CsEvb
 
     }
 
-    public struct State
-    {
-      private RegisterSet register_;
+    //============================================================================
 
-      public State()
+    public struct Memory
+    {
+      private uint[] data_;
+      private Dictionary<string, int> label_map_;
+
+      public Memory()
       {
-        register_ = new();
+        data_ = new uint[MEMSize];
+        label_map_ = new();
       }
+    }
+
+    //============================================================================
+
+    static private string relay = @"
+  # xA1 org
+  : relay ( a) r> a! @+ >r @+ zif drop ahead SWAP then r> over >r @p a relay !b !b !b begin @+ !b unext
+  : done then a >r a! ;";
+
+    static private string warm = @"
+  # xA9 org
+  : warm await ;";
+
+    static private string poly = @"
+  # xAA org
+  : poly ( xn-xy) r> a! >r @+ a begin >r *. r> a! @+ + a next >r ;";
+
+    static private string interp = @"
+  : interp ( ims-v) dup >r >r over
+    begin 2/ unext a! and >r @+ dup @+ inv . + inv r> a! dup dup xor 
+    begin +* unext >r drop r> . + ;";
+
+    static private string filter = @"
+  : taps ( y x c - y' x') r> a! >r begin @+ @ >r a >r *.17 r> a! >r !+ r> . + r> next @ a! ;";
+
+    static private string mul17 = @"
+  : *.17 ( a b - a a*b) a! 16. >r dup dup xor begin +* unext inv +* a -if drop inv 2* ; then drop 2* inv ;";
+
+    static private string shift = @"
+  : lsh ( w n-1 - w') for 2* unext ;
+  : rsh ( w n-1 - w') for 2/ unext ;";
+
+    static private string triangle = @"
+  : triangle ( ang*4) x1.0000 over -if drop . + ; then drop inv . + inv ;";
+
+    static private string muldot = @"
+  : *. ( f1 f2 - f1 f1*f2) *.17 a 2* -if drop inv 2* inv ; then drop 2* ;";
+
+    static private string divide = @"
+  +cy
+  : clc ( -2-) dup dup xor dup . + drop ;
+  : --u/mod ( hld-rq) clc
+  : -u/mod ( hld-ra) a! 17. >r
+    begin begin dup . + . >r dup . + dup a . + -if drop r> *next dup . + ; then over xor xor . r> next dup . + ;
+  -cy";
+
+    static private string wire1 = @"
+  # x9E org
+  : rcv ( s-sn) a >r dup dup a! 17. for begin
+  : bit @ drop @b -if drop inv 2* inv *next r> a! ; then drop 2* next r> a! ;
+  # xAA org
+  : cold left center a! . io b! dup dup xB7. dup >r >r 16. >r @ drop @b # await -until drop a! . bit ;
+  : fwd-b7 >r rcv a! rcv >r zif ; thn begin rcv !+ next ;";
+
+
+    static private string dac = @"
+  : -dac ( legacy entry name ...)
+  : dac27 ( m c p a w - m c p) dup >r >r over r> inv . +  >r >r  x155. r> over xor a 
+    begin unext !b . begin unext !b !b ;";
+
+    static private string spi = @"
+  # x2A NL ---  # x2B NL --+  # x3A NL +--  # x3B NL +-+ # x2F NL -++
+  # xC2 org
+  : 8obits ( dw-dw') 7. for  ( obit) leap 2* *next ;
+  : ibit ( dw-dw') @b . -if  drop inv 2* ;  then drop 2* inv ;
+  : half ( dwc-dw) !b over for . . unext ;
+  : select ( dw-dw) -++ half --+ half ;
+  : obit ( dw-dw) then  -if +-- half +-+ half ; then
+  : rbit ( dw-dw) --- half --+ half ;
+  : 18ibits ( d-dw) dup 17. >r
+  : ibits   begin rbit ibit inv next ;
+  : u2/ ( n - n) 2/ x1FFFF. and ;
+  # 497 NL spispeed
+  # xC00 NL spicmd
+  # 0 NL spiadr
+  : cold @b inv ..  avail -until  spispeed spiadr >r spicmd
+  : spi-boot ( d ah - d x) select  8obits 8obits drop r> . 8obits 8obits
+  : spi-exec ( dx-dx) drop 18ibits x1E000. . +  # rdl- -until >r 18ibits a! 18ibits
+  : spi-copy ( dn-dx) >r zif ; then begin 18ibits !+ next  dup ;";
+
+
+    static private string async = @"
+  # xCB equ 18ibits
+  : cold   x31A5. a! @  @b .. -if
+  : ser-exec ( x - d)   18ibits drop >r 18ibits drop a! 18ibits
+  : ser-copy ( xnx-d)   drop >r zif ;  then begin 18ibits drop !+ next ;  then drop avail alit >r >r ;
+  : wait ( x-1/1)   begin . drop @b -until  . drop ;
+  : sync ( x-3/2-d)   dup dup wait  xor inv >r begin @b . -if . drop *next await ;  then . drop r> inv 2/ ;
+  : start ( dw-4/2-dw,io) dup wait over dup 2/ . + >r
+  : delay ( -1/1-io) begin @b . -if then . drop next @b ;
+   ( 18ibits ( x-4/6-dwx) sync sync dup start ( 2bits) leap leap
+  : byte   then drop start leap
+  : 4bits   then leap
+  : 2bits   then then leap
+  : 1bit ( nw,io - nw,io) then >r 2/ r> over xor x20000. and xor over >r delay ;";
+
+    static private string sync = @"
+  # xBE equ sget
+  : cold   x31A5. a! @ @b . . -if avail # x3.FC00 [+] lit  dup >r dup
+    begin drop @b . -if ( rising) *next  SWAP then avail alit >r  drop >r ; then
+  : ser-exec ( x - x)   sget >r  sget a!  sget
+  : ser-copy ( n)   >r zif ;  then begin sget !+ next ;
+  ( sget) ( -4/3-w)   dup leap leap
+  : 6in   then then leap leap
+  : 2in   then then  2* 2*  dup
+  begin . drop @b . inv -until  inv 2. and dup begin . drop @b . . -until  2. and 2/ xor xor ;";
+
+
+    private RegisterSet register_ = new();
+    private Memory ram_ = new();
+    private Memory rom_ = new();
+    private string source_ = "";
+    private string comment_ = "";
+    private RomType rom_type_ = RomType.undefined;
+
+    public F18A()
+    {
+    }
+
+    public RomType ROMType { get { return rom_type_; } set { rom_type_ = value; } }
+
+    public string GetROMSource()
+    {
+      return GetROMSource(rom_type_);
+    }
+    public static string GetROMSource(RomType rom_type)
+    {
+      StringBuilder sb = new StringBuilder();
+      switch (rom_type)
+      {
+        case RomType.Basic:
+          sb.Append(relay);
+          sb.Append(warm);
+          sb.Append(" # xB0 org");
+          sb.Append(mul17);
+          sb.Append(muldot);
+          sb.Append(filter);
+          sb.Append(interp);
+          sb.Append(triangle);
+          sb.Append(divide);
+          sb.Append(poly);
+          break;
+
+        case RomType.Analog:
+          sb.Append(relay);
+          sb.Append(warm);
+          sb.Append(" # xB0 org");
+          sb.Append(mul17);
+          sb.Append(muldot);
+          sb.Append(dac);
+          sb.Append(interp);
+          sb.Append(triangle);
+          sb.Append(divide);
+          sb.Append(poly);
+          break;
+
+        case RomType.SpiBoot:
+          sb.Append(relay);
+          sb.Append(warm);
+          sb.Append(spi);
+          break;
+
+        case RomType.Wire1:
+          sb.Append(warm);
+          sb.Append(wire1);
+          sb.Append(triangle);
+          sb.Append(mul17);
+          sb.Append(muldot);
+          sb.Append(divide);
+          break;
+
+        case RomType.SerdesBoot:
+          sb.Append(relay);
+          sb.Append(warm);
+          sb.Append(" : cold x3141. a! x3FFFE. dup !  rdlu cold ;");
+          sb.Append(" # xB0 org");
+          sb.Append(mul17);
+          sb.Append(muldot);
+          sb.Append(filter);
+          sb.Append(interp);
+          sb.Append(triangle);
+          sb.Append(divide);
+          break;
+
+        case RomType.AsyncBoot:
+          sb.Append(relay);
+          sb.Append(warm);
+          sb.Append(async);
+          sb.Append(shift);
+          break;
+
+        case RomType.SyncBoot:
+          sb.Append(relay);
+          sb.Append(warm);
+          sb.Append(sync);
+          sb.Append(mul17);
+          sb.Append(filter);
+          sb.Append(triangle);
+          break;
+
+        default: break;
+      }
+      return sb.ToString();
     }
 
 

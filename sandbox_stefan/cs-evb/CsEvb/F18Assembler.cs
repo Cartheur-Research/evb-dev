@@ -8,69 +8,76 @@ namespace CsEvb
 {
   public class F18Assembler
   {
-    enum Command {
+    public enum Command
+    {
       undefined,
-      number,           // #
-      colon,            // :
-      dot,              // .
-      skip,             // ..
-      lesssl,           // <sl
-      comma,            // ,
-      semicolon,        // ;
-      comment,          // (
-      pcy,              // +cy
-      mcy,              // -cy
-      abegin,           // A[
-      setp,             // =P
-      enda,             // ]]
-      lcomment,         // line comment //
-      here,
-      begin,
-      _else,
-      then,
-      _if,
-      _while,
-      until,
-      mif,
-      mwhile,
-      muntil,
-      zif,
-      ahead,
-      leap,
-      again,
-      repeat,
-      _for,
-      next,
-      snext,
-      org,
-      qorg,             // ?org ( n-) error if org is not equal to expected value
-      nl,
-      ndl,
-      equ,              // label definition
-      its,
-      swap,
-      lit,
-      alit,
-      await,
-      avail,
-      load,
-      assign_a,         // /A
-      assign_b,         // /B
-      assign_io,        // /IO
-      assign_p,         // /P
-      assign_stack,     // /STACK
-      assign_rstack,    // /RSTACK
-      do_add,           // [+]
-      do_sub,           // [-]
-      do_mul,           // [*]
-      do_div,           // [/]
-      do_and,           // AND
-      do_or,            // OR
-      do_xor,           // XOR
-      do_inv,           // INV
-      include,
+      NUMBER,           // #
+      COLON,            // :
+      DOT,              // .
+      SKIP,             // ..
+      LESSSL,           // <sl
+      COMMA,            // ,
+      SEMICOLON,        // ;
+      COMMENT,          // (
+      PCY,              // +cy
+      MCY,              // -cy
+      ABEGIN,           // A[
+      SETP,             // =P
+      ENDA,             // ]]
+      LCOMMENT,         // line comment //
+      HERE,             // here
+      BEGIN,            // begin
+      ELSE,             // else
+      THEN,             // then
+      IF,               // if
+      WHILE,            // while
+      UNTIL,            // until
+      MIF,              // -if
+      MWHILE,           // -while
+      MUNTIL,           // -until
+      ZIF,              // zif
+      AHEAD,            // ahead
+      LEAP,             // leap
+      AGAIN,            // again
+      REPEAT,           // repeat
+      FOR,              // for
+      NEXT,             // next
+      SNEXT,            // *next
+      ORG,              // org
+      QORG,             // ?org ( n-) error if org is not equal to expected value
+      NL,               // NL
+      NDL,              // NDL
+      EQU,              // equ (label definition)
+      ITS,              // its
+      SWAP,             // SWAP
+      LIT,              // lit
+      ALIT,             // alit
+      AWAIT,            // await
+      AVAIL,            // avail
+      LOAD,             // LOAD
+      ASSIGN_A,         // /A ( n ) define register A
+      ASSIGN_B,         // /B ( n ) define register B
+      ASSIGN_IO,        // /IO ( n ) define register IO
+      ASSIGN_P,         // /P ( n ) define register P
+      ASSIGN_STACK,     // /STACK ( n0 .. n9 ) define parameter stack content
+      ASSIGN_RSTACK,    // /RSTACK ( n0 .. n8 ) define return stack content
+      DO_ADD,           // [+]
+      DO_SUB,           // [-]
+      DO_MUL,           // [*]
+      DO_DIV,           // [/]
+      DO_AND,           // AND
+      DO_OR,            // OR
+      DO_XOR,           // XOR
+      DO_INV,           // INV
+      INCLUDE,
       limit
     }
+
+    public void Assemble(F18A core, string source, bool is_rom = false)
+    {
+
+    }
+
 
   }
 }
