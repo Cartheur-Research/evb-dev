@@ -8,6 +8,8 @@ namespace CsEvb
 {
   public class F18Assembler
   {
+    private Stack<int> stack_ = [];
+
     public enum Command
     {
       undefined,
