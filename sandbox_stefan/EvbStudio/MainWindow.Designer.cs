@@ -40,8 +40,8 @@ namespace EvbStudio
       this.ClientSize = new System.Drawing.Size(1565, 889);
       this.Name = "MainWindow";
       this.Text = "EVB";
-      this.Load += new System.EventHandler(this.MainWindow_Load);
-      this.Paint += new System.Windows.Forms.PaintEventHandler(this.MainWindow_Paint);
+      this.Load += new System.EventHandler(this.MainWindowLoad);
+      this.Paint += new System.Windows.Forms.PaintEventHandler(this.MainWindowPaint);
       this.ResumeLayout(false);
 
     }
