@@ -1,0 +1,73 @@
+project(studio) : boost_filesystem, boost_program_options, gtkmm {
+//  after         = libbox
+  exename       = gastudio
+//  libs         += Gkernel
+  version       = 1.0.0
+  includes     += ../include
+  libpaths     += ../lib
+  exeout        = ../bin
+
+  Resource_Files {
+    ../res/ga.rc
+  }
+  Header_Files {
+    ../include/connection.hpp
+    ../include/boot.hpp
+    ../include/evb.hpp
+    ../include/evb001.hpp
+    ../include/evb002.hpp
+    ../include/studio.hpp
+    ../include/f18a.hpp
+    ../include/ga144.hpp
+    ../include/node_type.hpp
+    ../include/pf.hpp
+    ../include/utils.hpp
+    ../include/xml.hpp
+  }
+
+  Source_Files {
+    ../src/f18a/assembler.cpp
+    ../src/f18a/other.cpp
+    ../src/f18a/processor.cpp
+    ../src/f18a/task.cpp
+
+    ../src/evb/action.cpp
+    ../src/evb/boot.cpp
+    ../src/evb/board.cpp
+    ../src/evb/board_manager.cpp
+
+    ../src/evb/board001.cpp
+    ../src/evb/board002.cpp
+
+    ../src/ga144/chip.cpp
+
+    ../src/common/connection.cpp
+    ../src/common/utils.cpp
+    ../src/common/xml.cpp
+
+    ../src/poly/compiler.cpp
+    ../src/poly/host.cpp
+    ../src/poly/interpreter.cpp
+    ../src/poly/primitive.cpp
+    ../src/poly/target.cpp
+    ../src/poly/virtual_machine.cpp
+
+    ../src/studio/connection_window.cpp
+    ../src/studio/evb_view.cpp
+    ../src/studio/evb_window.cpp
+    ../src/studio/f18a_view.cpp
+    ../src/studio/f18a_window.cpp
+    ../src/studio/ga144_view.cpp
+    ../src/studio/ga144_window.cpp
+    ../src/studio/io_window.cpp
+    ../src/studio/instruction_window.cpp
+    ../src/studio/main_window.cpp
+    ../src/studio/module_window.cpp
+    ../src/studio/package_window.cpp
+    ../src/studio/source_window.cpp
+    ../src/studio/echo_test_window.cpp
+
+    ../src/studio/studio.cxx
+  }
+}
+

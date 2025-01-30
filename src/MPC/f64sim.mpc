@@ -1,0 +1,26 @@
+project(f64sim) : boost_filesystem, boost_program_options {
+//  after         = libbox
+  exename       = cvmc
+//  libs         += Gkernel
+  version       = 1.0.0
+  includes     += ../include
+  libpaths     += ../lib
+  exeout        = ../bin
+
+  Header_Files {
+    ../include/f64sim.hpp
+  }
+
+  Source_Files {
+    ../src/f64sim/chip.cpp
+    ../src/f64sim/io.cpp
+    ../src/f64sim/memory.cpp
+    ../src/f64sim/pad.cpp
+    ../src/f64sim/port.cpp
+    ../src/f64sim/processor.cpp
+    ../src/f64sim/task.cpp
+
+    ../src/f64sim/f64sim.cxx
+  }
+}
+

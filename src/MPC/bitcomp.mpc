@@ -1,0 +1,23 @@
+project(bitcomp) : boost_filesystem, boost_program_options, gtkmm {
+//  after         = libbox
+  exename       = bitcomp
+//  libs         += Gkernel
+  version       = 1.0.0
+  includes     += ../include
+  libpaths     += ../lib
+  exeout        = ../bin
+
+  Resource_Files {
+    ../res/ga.rc
+  }
+  Header_Files {
+    ../include/bitcomp.hpp
+  }
+
+  Source_Files {
+    ../src/bitcomp/bitcomp.cpp
+
+    ../src/bitcomp/main.cxx
+  }
+}
+

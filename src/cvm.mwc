@@ -1,0 +1,11 @@
+// $Id: cvm.mwc 4734 2015-05-27 16:02:50Z $
+
+workspace {
+  cmdline += -include MPC/config
+
+  MPC/compiler.mpc
+  MPC/f64sim.mpc
+  MPC/studio.mpc
+  MPC/bitcomp.mpc
+  MPC/f16.mpc
+}

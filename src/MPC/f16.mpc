@@ -1,0 +1,17 @@
+project(f16) : boost_filesystem, boost_program_options {
+  exename       = f16
+  version       = 1.0.0
+  includes     += ../f16/include
+  libpaths     += ../lib
+  exeout        = ../bin
+
+  Header_Files {
+    ../f16/include/f16.hpp
+  }
+
+  Source_Files {
+
+    ../f16/src/f16.cxx
+  }
+}
+

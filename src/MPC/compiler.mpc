@@ -1,0 +1,51 @@
+project(cvmc) : boost_filesystem, boost_program_options, boost_wave {
+//  after         = libbox
+  exename       = cvmc
+//  libs         += Gkernel
+  version       = 1.0.0
+  includes     += ../include
+  libpaths     += ../lib
+  exeout        = ../bin
+
+  Header_Files {
+    ../include/cvmc.hpp
+    ../include/xml.hpp
+  }
+
+  Source_Files {
+    ../src/compiler/assign.cpp
+    ../src/compiler/binary.cpp
+    ../src/compiler/call.cpp
+    ../src/compiler/case.cpp
+    ../src/compiler/cast.cpp
+    ../src/compiler/code.cpp
+    ../src/compiler/const.cpp
+    ../src/compiler/context.cpp
+    ../src/compiler/control.cpp
+    ../src/compiler/do.cpp
+    ../src/compiler/enum.cpp
+    ../src/compiler/expr.cpp
+    ../src/compiler/function.cpp
+    ../src/compiler/hash.cpp
+    ../src/compiler/helper.cpp
+    ../src/compiler/library.cpp
+    ../src/compiler/linker.cpp
+    ../src/compiler/local.cpp
+    ../src/compiler/object.cpp
+    ../src/compiler/parameter.cpp
+    ../src/compiler/parser.cpp
+    ../src/compiler/static.cpp
+    ../src/compiler/stmt.cpp
+    ../src/compiler/struct.cpp
+    ../src/compiler/ternary.cpp
+    ../src/compiler/type.cpp
+    ../src/compiler/unary.cpp
+    ../src/compiler/updater.cpp
+    ../src/compiler/variable.cpp
+
+    ../src/common/xml.cpp
+
+    ../src/compiler/main.cxx
+  }
+}
+
