@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using static CsEvb.F18A;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CsEvb
 {
@@ -65,6 +68,46 @@ namespace CsEvb
       BSTORE,
       ASTORE,
       limit
+    }
+
+    static public string? OpcodeToString(Opcode op)
+    {
+      switch (op)
+      {
+        case Opcode.RET: return "ret";
+        case Opcode.EX: return "ex";
+        case Opcode.JUMP: return "jump";
+        case Opcode.CALL: return "call";
+        case Opcode.UNEXT: return "unext";
+        case Opcode.NEXT: return "next";
+        case Opcode.IF: return "if";
+        case Opcode.MIF: return "-if";
+        case Opcode.FETCHP: return "@p";
+        case Opcode.FETCHPLUS: return "@+";
+        case Opcode.FETCHB: return "@b";
+        case Opcode.FETCHA: return "@";
+        case Opcode.STOREP: return "!p";
+        case Opcode.STOREPLUS: return "!+";
+        case Opcode.STOREB: return "!b";
+        case Opcode.STOREA: return "!";
+        case Opcode.PLUSMUL: return "+*";
+        case Opcode.MUL2: return "2*";
+        case Opcode.DIV2: return "2/";
+        case Opcode.INV: return "inv";
+        case Opcode.ADD: return "+";
+        case Opcode.AND: return "and";
+        case Opcode.XOR: return "xor";
+        case Opcode.DROP: return "drop";
+        case Opcode.DUP: return "dup";
+        case Opcode.POP: return "pop";
+        case Opcode.OVER: return "over";
+        case Opcode.A: return "a";
+        case Opcode.NOP: return "nop";
+        case Opcode.PUSH: return "push";
+        case Opcode.BSTORE: return "b!";
+        case Opcode.ASTORE: return "a!";
+      }
+      return null;
     }
 
     //============================================================================
@@ -379,17 +422,39 @@ namespace CsEvb
     private string source_ = "";
     private string comment_ = "";
     private RomType rom_type_ = RomType.undefined;
+    private Dictionary<string, int> label_map_ = [];
 
     public F18A()
     {
     }
 
+    public void RegisterLabel(string label, int addr)
+    {
+      label_map_[label] = addr;
+    }
+
+    public bool TryLookupLabel(string label, out int addr)
+    {
+      if (label_map_.TryGetValue(label, out addr)) { return true; }
+      addr = -1;
+      return false;
+    }
+
     public RomType ROMType { get { return rom_type_; } set { rom_type_ = value; } }
+    public Memory RAM { get { return ram_; } }
+    public Memory ROM { get { return rom_; } }
+
+    public string Source { get { return source_; } }
+    public string Comment { get { return comment_; } }
 
     public string GetROMSource()
     {
       return GetROMSource(rom_type_);
     }
+
+    //public Memory GetRAM() { return ram_; }
+    //public Memory GetROM() { return rom_; }
+
     public static string GetROMSource(RomType rom_type)
     {
       StringBuilder sb = new StringBuilder();

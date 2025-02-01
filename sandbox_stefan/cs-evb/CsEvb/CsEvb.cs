@@ -1,6 +1,16 @@
 ﻿namespace CsEvb;
 
-public class Class1
+public class Evb
 {
+  public void Boot()
+  {
+
+  }
+
+  public void InstallKraken()
+  {
+
+  }
+
 
 }

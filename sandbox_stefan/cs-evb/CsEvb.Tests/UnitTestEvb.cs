@@ -1,6 +1,6 @@
 namespace CsEvb.Tests;
 
-public class UnitTest1
+public class UnitTestEvb
 {
     [Fact]
     public void Test1()
