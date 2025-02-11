@@ -1,25 +1,31 @@
-﻿namespace CsEvb;
+﻿
+namespace CsEvb;
 
 public class Chip
 {
-  public virtual int NoOfRows()
+  public virtual int GetNoOfRows()
   {
     throw new NotImplementedException();
   }
 
-  public virtual int NoOfColumns()
+  public virtual int GetNoOfColumns()
   {
     throw new NotImplementedException();
   }
 
-  public virtual int GetLastRow()
+  public virtual F18A.RomType GetRomType(int node)
   {
-    return NoOfRows() - 1;
+    throw new NotImplementedException();
   }
 
-  public virtual int GetLastColumn()
+  public int GetLastRow()
   {
-    return NoOfColumns() - 1;
+    return GetNoOfRows() - 1;
+  }
+
+  public int GetLastColumn()
+  {
+    return GetNoOfColumns() - 1;
   }
 
 

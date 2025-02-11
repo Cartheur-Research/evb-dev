@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.Reflection.Emit;
 using System.Runtime.Intrinsics.Arm;
 using System.Text;
-using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
-using static CsEvb.F18A;
-using static System.Net.Mime.MediaTypeNames;
+using System.Xml.Schema;
+using System.Xml.Serialization;
 
 namespace CsEvb
 {
-  public class F18A
+  public class F18A : IXmlSerializable
   {
     public const uint InvalidValue = 0x80000000;
 
@@ -99,11 +96,11 @@ namespace CsEvb
         case Opcode.XOR: return "xor";
         case Opcode.DROP: return "drop";
         case Opcode.DUP: return "dup";
-        case Opcode.POP: return "pop";
+        case Opcode.POP: return "r>";
         case Opcode.OVER: return "over";
         case Opcode.A: return "a";
         case Opcode.NOP: return "nop";
-        case Opcode.PUSH: return "push";
+        case Opcode.PUSH: return ">r";
         case Opcode.BSTORE: return "b!";
         case Opcode.ASTORE: return "a!";
       }
@@ -202,29 +199,54 @@ namespace CsEvb
 
     //============================================================================
 
-    public enum IOPortAddr
+
+    static public string? IOToString(int addr)
     {
-      io = 0x08,
-      data = 0x14,
-      ___u = 0x10,
-      __l_ = 0x20,
-      __lu = 0x30,
-      _d__ = 0x40,
-      _d_u = 0x50,
-      _dl_ = 0x60,
-      _dlu = 0x70,
-      r___ = 0x80,
-      r__u = 0x90,
-      r_l_ = 0xa0,
-      r_lu = 0xb0,
-      rd__ = 0xc0,
-      rd_u = 0xd0,
-      rdl_ = 0xe0,
-      rdlu = 0xf0,
+      switch (addr)
+      {
+        case 0x15d: return "io";
+        case 0x171: return "ldata";
+        case 0x141: return "data";
+        case 0x157: return "warp";
+        case 0x175: return "left";
+        case 0x115: return "down";
+        case 0x1d5: return "right";
+        case 0x195: return "corner";
+        case 0x1b5: return "top";
+        case 0x145: return "up";
+        case 0x185: return "side";
+        case 0x1a5: return "center";
+        default: break;
+      }
+      return null;
     }
 
+    //============================================================================
 
-    public string? AddrToString(uint addr)
+
+    //public enum IOPortAddr
+    //{
+    //  io = 0x08,
+    //  data = 0x14,
+    //  ___u = 0x10,
+    //  __l_ = 0x20,
+    //  __lu = 0x30,
+    //  _d__ = 0x40,
+    //  _d_u = 0x50,
+    //  _dl_ = 0x60,
+    //  _dlu = 0x70,
+    //  r___ = 0x80,
+    //  r__u = 0x90,
+    //  r_l_ = 0xa0,
+    //  r_lu = 0xb0,
+    //  rd__ = 0xc0,
+    //  rd_u = 0xd0,
+    //  rdl_ = 0xe0,
+    //  rdlu = 0xf0,
+    //}
+
+
+    static public string? AddrToString(int addr)
     {
       switch (addr)
       {
@@ -265,6 +287,13 @@ namespace CsEvb
       AsyncBoot,
       SpiBoot,
       Wire1,
+      Node007,
+      Node008,
+      Node009,
+      Node105,
+      Node106,
+      Node107,
+      Node108,
       limit
     }
 
@@ -300,14 +329,40 @@ namespace CsEvb
 
     public struct Memory
     {
-      private uint[] data_;
-      private Dictionary<string, int> label_map_;
+      private int[] data_;
+      //private Dictionary<string, int> label_map_ = [];
 
       public Memory()
       {
-        data_ = new uint[MEMSize];
-        label_map_ = new();
+        data_ = new int[MEMSize];
       }
+
+      public void Write(int pos, int value)
+      {
+        data_[pos & 0x3f] = value;
+      }
+
+      public int Read(int pos)
+      {
+        return data_[pos & 0x3f];
+      }
+
+      public void Clear()
+      {
+        for (int i = 0; i < MEMSize; ++i)
+        {
+          data_[i] = 0;
+        }
+      }
+
+      public void Init(int val)
+      {
+        for (int i = 0; i < MEMSize; ++i)
+        {
+          data_[i] = val;
+        }
+      }
+
     }
 
     //============================================================================
@@ -360,7 +415,7 @@ namespace CsEvb
   : bit @ drop @b -if drop inv 2* inv *next r> a! ; then drop 2* next r> a! ;
   # xAA org
   : cold left center a! . io b! dup dup xB7. dup >r >r 16. >r @ drop @b # await -until drop a! . bit ;
-  : fwd-b7 >r rcv a! rcv >r zif ; thn begin rcv !+ next ;";
+  : fwd-b7 >r rcv a! rcv >r zif ; then begin rcv !+ next ;";
 
 
     static private string dac = @"
@@ -383,7 +438,7 @@ namespace CsEvb
   # 497 NL spispeed
   # xC00 NL spicmd
   # 0 NL spiadr
-  : cold @b inv ..  avail -until  spispeed spiadr >r spicmd
+  : cold @b inv ..  # await -until  spispeed spiadr >r spicmd
   : spi-boot ( d ah - d x) select  8obits 8obits drop r> . 8obits 8obits
   : spi-exec ( dx-dx) drop 18ibits x1E000. . +  # rdl- -until >r 18ibits a! 18ibits
   : spi-copy ( dn-dx) >r zif ; then begin 18ibits !+ next  dup ;";
@@ -393,7 +448,7 @@ namespace CsEvb
   # xCB equ 18ibits
   : cold   x31A5. a! @  @b .. -if
   : ser-exec ( x - d)   18ibits drop >r 18ibits drop a! 18ibits
-  : ser-copy ( xnx-d)   drop >r zif ;  then begin 18ibits drop !+ next ;  then drop avail alit >r >r ;
+  : ser-copy ( xnx-d)   drop >r zif ;  then begin 18ibits drop !+ next ;  then drop # await lit >r >r ;
   : wait ( x-1/1)   begin . drop @b -until  . drop ;
   : sync ( x-3/2-d)   dup dup wait  xor inv >r begin @b . -if . drop *next await ;  then . drop r> inv 2/ ;
   : start ( dw-4/2-dw,io) dup wait over dup 2/ . + >r
@@ -406,8 +461,8 @@ namespace CsEvb
 
     static private string sync = @"
   # xBE equ sget
-  : cold   x31A5. a! @ @b . . -if avail # x3.FC00 [+] lit  dup >r dup
-    begin drop @b . -if ( rising) *next  SWAP then avail alit >r  drop >r ; then
+  : cold   x31A5. a! @ @b . . -if # await # x3.FC00 [+] lit  dup >r dup
+    begin drop @b . -if ( rising) *next  SWAP then # await lit >r  drop >r ; then
   : ser-exec ( x - x)   sget >r  sget a!  sget
   : ser-copy ( n)   >r zif ;  then begin sget !+ next ;
   ( sget) ( -4/3-w)   dup leap leap
@@ -415,47 +470,373 @@ namespace CsEvb
   : 2in   then then  2* 2*  dup
   begin . drop @b . inv -until  inv 2. and dup begin . drop @b . . -until  2. and 2/ xor xor ;";
 
+    static private string n007 = @"
+  : db@ ( -w) @ ;
+  : db! ( w) x15555. !b !
+  : inpt x14555. !b ;
+  ( assumes a=up, b=io, r=down)
+  ";
 
+    static private string n008 = @"
+  # 0 equ nooop
+  # 4 equ rcol1
+  # x10 equ cmmd
+  # x13 equ rcol
+  # x15 equ wcol
+  ";
+
+    static private string n009 = @"
+  : cmd ( c) x3d.555 !b .. @ !b cmd ;
+  ( assumes a=right, b=data)
+  ";
+
+    static private string n105 = @"
+  : rp-- ( a-a) -1. . + ;
+  : 'else : bs@ ( a-w) @p !b !b A[ @p # 106 its x@ ]] ,
+    @p !b @b ; A[ . . . !p ]] ,
+  : rp@ ( ri-ri) over rp--
+  : pshbs ( w) @p !b !b ; A[ @p # 106 its pshw ]] ,
+  : 'r@ ( ri-ri) over rp--
+  : @w ( a) bs@ pshbs ;
+  : rfrom ( ri-r'i) over rp-- over over @w ;
+  : popbs ( -w) @p !b @b ; A[ !p # 106 its pops ]] ,
+  : pshr ( aw-a) @p !b !b dup A[ @p . . @p ]] ,
+    !b @p !b A[ # 106 its x! ]] ,
+  : rp++ : ip++ ( a-a) 1. . + ;
+  : tor ( ri-r'i) >r popbs pshr r> ;
+  : rp! ( i-ri) >r popbs rp++ r> ;
+  : 'con ( ra-r'i) bs@
+  : 'var ( ra-r'i) dup pshbs
+  : 'exit ( rx-r'i) drop rp-- dup bs@ ;
+
+  begin dup 2* -if drop !b else drop >r ex
+  : bitsy then dup bs@ >r ip++
+  : xxt r> -until >r pshr r> bitsy ;
+
+  : 'ex ( xt) popbs >r xxt ;
+  : 'lit ( -w) dup bs@ >r ip++ r> pshbs ;
+  : 'if ( t) popbs if drop ip++ ; then drop 'else ;
+  ";
+
+    static private string n106 = @"
+  # x3C org : xa@ ( a) ( @p !b !b ; @p # 107 its sd@ )
+  # x3E org : xa! ( a) ( @p !b !b ; @p # 107 its sd! )
+  # xAA org : 'c@ : '@ : x@ ( a-w) xa@ @b ;
+  : 1+ : sp++ : char+ : cell+ ( w-w') 1. . + ;
+  : popt ( p-xp't) dup sp++ over x@ ;
+  : 1- : sp-- : char- : cell- ( w-w') -1. . + ;
+  : psht ( pt-p') >r sp-- r> over
+  : x! ( wa) xa! !b ;
+  : 'c! : '! ( pwa-p'st) x!
+  : popts ( p-p'st) popt
+  : pops ( pt-p'st) >r popt r> ;
+  : pshs ( pst-p't) >r psht r> ;
+  : page@ ( pst-p'tw) @p !b @b .. dup !p ;
+  : pshw ( pstw-p'tw) >r pshs r> ;
+  : page! ( ptw-p'st) @p !b !b .. drop @p ; pops ;
+  : sp@ ( -a) pshs psht dup pops ;
+  : sp! ( a) pshs popts ;
+  : 'drop ( w) drop pops ;
+  : 'over ( ww-www) over pshw ;
+  : 'dup ( w-ww) dup pshw ;
+  : 'swap ( ab-ba) over >r >r drop r> r> ;
+  : '2/ ( w-w) 2/ ;
+  : '2* ( w-w) 2* ;
+  : um+ ( uu-uc) over xor -if over xor . + -if
+  : 'nc ( -0) dup dup xor ;
+  : 'cy ( -1) then 1. ;
+    then over xor -if + 'cy ; then + 'nc ;
+  : zless ( n-t) -if dup xor inv ; then dup xor ;
+  : 'or ( ww-w) over inv and
+  : 'xor ( ww-w) xor pops ;
+  : 'and ( ww-w) and pops ;
+  : negate ( w-w) 1-
+  : invert ( w-w) begin inv ;
+  : zeq ( w-t) until dup xor ;
+  : '+ ( pww-p'sw') + pops ;
+  : swap- ( ww-w) inv . + inv pops ;
+  ";
+
+    static private string n107 = @"
+  : a2rc ( pa-pbc) dup >r 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ 2/ -if
+  : row! ( pr-pbc) x7fff. and dup .. x18000. xor .. !
+    A[ # -d-- =P @p ! # 008 its cmmd ]] lit ! ..
+    x6000. and r> .. x3ff. and ; then over + row! ;
+  : sd@ ( pa-p) a2rc x28400. xor xor !
+    A[ # -d-- =P @p ! # 008 its rcol ]] lit ! ..
+    down b! .. @p !b @b A[ @ !p ]] , r> b! !b ;
+  : sd! ( pa-p) a2rc x20400. xor xor !
+    A[ # -d-- =P @p ! # 008 its wcol ]] lit ! ..
+    r> b! @b .. down b! .. @p !b !b ; @p # 007 its db!
+  : poll ( ru-ru) io b! @b 2* 2* -if >r over .. r--- over r>
+    then x800. and . if >r .. ---u r> then drop poll ;
+  ";
+
+    static private string n108 = @"
+  : noop @p ! ; # 008 its nooop
+  : cmd ( c) A[ # -d-- =P @p ! # 008 its cmmd ]] lit ! ! ;
+  : idle ( m-m) @p ! .. # 008 its nooop x8003. cmd noop
+    120. for @p ! .. # 008 its nooop
+    begin @b and if @ .. @ ! ! *next idle ;
+    then drop next @p ! ..  # 008 its nooop idle ;
+  : init 4761. for noop next
+    noop ( pre.all) x10400. cmd noop
+    ( rfr.123) x8001. cmd noop noop
+    ( rfr.123) x8002. cmd noop noop
+    ( std.mode) x21. cmd noop noop
+    ( ext.mode) x4000. cmd noop idle ;
+  ";
+
+    //static public string GetRomCode(RomType rt)
+    //{
+    //  StringBuilder sb = new();
+
+    //}
+
+
+    private GA144? chip_ = null;
     private RegisterSet register_ = new();
     private Memory ram_ = new();
     private Memory rom_ = new();
     private string source_ = "";
     private string comment_ = "";
     private RomType rom_type_ = RomType.undefined;
+    private Dictionary<string, int> literal_map_ = [];
+    private Dictionary<string, int> rom_literal_map_ = [];
     private Dictionary<string, int> label_map_ = [];
+    private Dictionary<string, int> rom_label_map_ = [];
+    private Dictionary<int, string> addr_to_label_map_ = [];
+    private Dictionary<int, string> addr_to_rom_label_map_ = [];
+    private int index_ = -1;
+    private bool rom_compiled_ = false;
 
     public F18A()
     {
     }
 
-    public void RegisterLabel(string label, int addr)
+    public int GetColumn()
     {
-      label_map_[label] = addr;
+      if ((chip_ is not null) && (index_ >= 0))
+      {
+        chip_.GetNodePlaceFromIndex(index_, out _, out int c);
+        return c;
+      }
+      return -1;
+    }
+
+    public int GetRow()
+    {
+      if ((chip_ is not null) && (index_ >= 0))
+      {
+        chip_.GetNodePlaceFromIndex(index_, out int r, out _);
+        return r;
+      }
+      return -1;
+    }
+
+    public void Set(GA144 chip, int row, int column)
+    {
+      chip_ = chip;
+      index_ = chip.GetNodeIndex(row, column);
+    }
+
+    public void SetChip(GA144 chip)
+    {
+      chip_ = chip;
+    }
+
+    public void SetIndex(int node_index)
+    {
+      index_ = node_index;
+      if (chip_ is not null)
+      {
+        chip_.SetNode(node_index, this);
+        rom_type_ = chip_.GetRomType(chip_.GetNodeNoFromIndex(node_index));
+      }
+    }
+
+    public void SetRomType(RomType t)
+    {
+      rom_type_ = t;
+    }
+
+
+    public void ClearRAM()
+    {
+      ram_.Clear();
+      label_map_.Clear();
+      addr_to_label_map_.Clear();
+      literal_map_.Clear();
+    }
+
+    public void ClearROM()
+    {
+      rom_.Init(0x134a9);
+      rom_label_map_.Clear();
+      addr_to_rom_label_map_.Clear();
+      rom_literal_map_.Clear();
+    }
+
+    public string Source { get { return source_; } set { source_ = value; } }
+    public string Comment { get { return comment_; } set { comment_ = value; } }
+
+    public bool IsHorizontalBorder()
+    {
+      System.Diagnostics.Debug.Assert(chip_ is not null);
+      int c = GetColumn();
+      if (c < 0) { throw new InvalidDataException("no column"); }
+      if (c >= chip_.GetNoOfColumns()) { throw new InvalidDataException("invalid column"); }
+      return (c == 0) || (c == chip_.GetLastColumn());
+    }
+
+    public bool IsVerticalBorder()
+    {
+      System.Diagnostics.Debug.Assert(chip_ is not null);
+      int r = GetRow();
+      if (r < 0) { throw new InvalidDataException("no row"); }
+      if (r >= chip_.GetNoOfRows()) { throw new InvalidDataException("invalid row"); }
+      return (r == 0) || (r == chip_.GetLastColumn());
+    }
+
+    public int Warm() // return io address for warm start
+    {
+      if (IsHorizontalBorder())
+      {
+        if (IsVerticalBorder())
+        {
+          return 0x195;
+        }
+        return 0x185;
+      }
+      if (IsVerticalBorder())
+      {
+        return 0x1b5;
+      }
+      return 0x1a5;
+    }
+
+    public int GetNodeNo()
+    {
+      System.Diagnostics.Debug.Assert(chip_ is not null);
+      System.Diagnostics.Debug.Assert(index_ >= 0);
+      return chip_.GetNodeNoFromIndex(index_);
+    }
+
+    public void RegisterLabel(string label, int addr, bool is_rom)
+    {
+      if ((addr > 0xff) && (addr <= 0x1ff))
+      {
+        throw new InvalidDataException("invalid label address " + addr.ToString("X"));
+      }
+
+      if (is_rom)
+      {
+        rom_label_map_[label] = addr;
+        addr_to_rom_label_map_[addr] = label;
+      }
+      else
+      {
+        label_map_[label] = addr;
+        addr_to_label_map_[addr] = label;
+      }
     }
 
     public bool TryLookupLabel(string label, out int addr)
     {
       if (label_map_.TryGetValue(label, out addr)) { return true; }
+      if (rom_label_map_.TryGetValue(label, out addr)) { return true; }
       addr = -1;
       return false;
     }
+
+    public bool TryLookupAddress(int addr, out string label)
+    {
+      if (addr_to_label_map_.TryGetValue(addr, out var lbl))
+      {
+        label = lbl;
+        return true;
+      }
+      if (addr_to_rom_label_map_.TryGetValue(addr, out var rom_lbl))
+      {
+        label = rom_lbl;
+        return true;
+      }
+      label = "";
+      return false;
+    }
+
+    public bool TryLookup(string name, out int val)
+    {
+      if (label_map_.TryGetValue(name, out val)) { return true; }
+      if (rom_label_map_.TryGetValue(name, out val)) { return true; }
+      if (literal_map_.TryGetValue(name, out val)) { return true; }
+      if (rom_literal_map_.TryGetValue(name, out val)) { return true; }
+      val = 0;
+      return false;
+    }
+
+    public void RegisterLiteral(string label, int value, bool is_rom)
+    {
+      if (is_rom)
+      {
+        rom_literal_map_[label] = value;
+      }
+      else
+      {
+        literal_map_[label] = value;
+      }
+    }
+
+    public bool TryLookupLiteral(string name, out int value)
+    {
+      if (literal_map_.TryGetValue(name, out value)) { return true; }
+      if (rom_literal_map_.TryGetValue(name, out value)) { return true; }
+      value = 0;
+      return false;
+    }
+
 
     public RomType ROMType { get { return rom_type_; } set { rom_type_ = value; } }
     public Memory RAM { get { return ram_; } }
     public Memory ROM { get { return rom_; } }
 
-    public string Source { get { return source_; } }
-    public string Comment { get { return comment_; } }
+    public void Write(int pos, int value)
+    {
+      if (pos <= 0x7f)
+      {
+        ram_.Write(pos, value);
+      }
+      else if (pos <= 0xff)
+      {
+        rom_.Write(pos, value);
+      }
+      else
+      {
+        throw new InvalidDataException("invalid address " + pos.ToString("X"));
+      }
+    }
+
+    public int Read(int pos)
+    {
+      if (pos <= 0x7f)
+      {
+        return ram_.Read(pos);
+      }
+      if (pos <= 0xff)
+      {
+        return rom_.Read(pos);
+      }
+      return 0;
+    }
+
 
     public string GetROMSource()
     {
       return GetROMSource(rom_type_);
     }
 
-    //public Memory GetRAM() { return ram_; }
-    //public Memory GetROM() { return rom_; }
 
-    public static string GetROMSource(RomType rom_type)
+    static public string GetROMSource(RomType rom_type)
     {
       StringBuilder sb = new StringBuilder();
       switch (rom_type)
@@ -463,7 +844,7 @@ namespace CsEvb
         case RomType.Basic:
           sb.Append(relay);
           sb.Append(warm);
-          sb.Append(" # xB0 org");
+          sb.Append("\n # xB0 org");
           sb.Append(mul17);
           sb.Append(muldot);
           sb.Append(filter);
@@ -476,7 +857,7 @@ namespace CsEvb
         case RomType.Analog:
           sb.Append(relay);
           sb.Append(warm);
-          sb.Append(" # xB0 org");
+          sb.Append("\n # xB0 org");
           sb.Append(mul17);
           sb.Append(muldot);
           sb.Append(dac);
@@ -504,8 +885,8 @@ namespace CsEvb
         case RomType.SerdesBoot:
           sb.Append(relay);
           sb.Append(warm);
-          sb.Append(" : cold x3141. a! x3FFFE. dup !  rdlu cold ;");
-          sb.Append(" # xB0 org");
+          sb.Append("\n: cold x3141. a! x3FFFE. dup !  rdlu cold ;");
+          sb.Append("\n# xB0 org");
           sb.Append(mul17);
           sb.Append(muldot);
           sb.Append(filter);
@@ -530,12 +911,103 @@ namespace CsEvb
           sb.Append(triangle);
           break;
 
+        case RomType.Node007:
+          sb.Append(warm);
+          sb.Append(n007);
+          break;
+
+        case RomType.Node008:
+          sb.Append(warm);
+          sb.Append(n008);
+          break;
+
+        case RomType.Node009:
+          sb.Append(warm);
+          sb.Append(n009);
+          break;
+
+        case RomType.Node105:
+          sb.Append(warm);
+          sb.Append(n105);
+          break;
+
+        case RomType.Node106:
+          sb.Append(warm);
+          sb.Append(n106);
+          break;
+
+        case RomType.Node107:
+          sb.Append(warm);
+          sb.Append(n107);
+          break;
+
+        case RomType.Node108:
+          sb.Append(warm);
+          sb.Append(n108);
+          break;
+
         default: break;
       }
       return sb.ToString();
     }
 
+    public void CompileROM(F18Assembler ass)
+    {
+      if (rom_compiled_) { return; }
+      System.Diagnostics.Debug.Assert(chip_ is not null);
+      ClearROM();
+      string rom = GetROMSource();
+      ass.Assemble(chip_, this, rom, true);
+      rom_compiled_ = true;
+    }
 
+    public XmlSchema? GetSchema()
+    {
+      return null;
+    }
+
+    public void ReadXml(XmlReader reader)
+    {
+      System.Diagnostics.Debug.Assert(chip_ is not null);
+      int r = -1;
+      int c = -1;
+      if (reader.HasAttributes)
+      {
+        string? value;
+        value = reader.GetAttribute("r");
+        if (value is not null) { r = int.Parse(value); }
+        value = reader.GetAttribute("c");
+        if (value is not null) { c = int.Parse(value); }
+      }
+      if ((r >= 0) && (c >= 0))
+      {
+        chip_.SetNode(chip_.GetNodeIndex(r, c), this);
+      }
+      if (reader.IsEmptyElement) { return; }
+      while (reader.Read())
+      {
+        switch (reader.NodeType)
+        {
+          case XmlNodeType.Element:
+            break;
+          case XmlNodeType.EndElement:
+            return;
+          default: break;
+        }
+      }
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+      writer.WriteStartElement("F18A");
+      if ((chip_ is not null) && (index_ >= 0))
+      {
+        chip_.GetNodePlaceFromIndex(index_, out int r, out int c);
+        writer.WriteAttributeString("r", r.ToString());
+        writer.WriteAttributeString("c", c.ToString());
+      }
+      writer.WriteEndElement();
+    }
   }
 
 

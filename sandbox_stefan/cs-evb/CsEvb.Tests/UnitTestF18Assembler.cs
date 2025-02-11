@@ -1,3 +1,5 @@
+using System.Xml;
+
 namespace CsEvb.Tests;
 
 public class UnitTestF18Assembler
@@ -36,18 +38,25 @@ public class UnitTestF18Assembler
     Assert.Equal(CsEvb.F18A.Opcode.XOR, CsEvb.F18Assembler.OpcodeFromString("xor"));
     Assert.Equal(CsEvb.F18A.Opcode.DROP, CsEvb.F18Assembler.OpcodeFromString("drop"));
     Assert.Equal(CsEvb.F18A.Opcode.DUP, CsEvb.F18Assembler.OpcodeFromString("dup"));
-    Assert.Equal(CsEvb.F18A.Opcode.POP, CsEvb.F18Assembler.OpcodeFromString("pop"));
+    Assert.Equal(CsEvb.F18A.Opcode.POP, CsEvb.F18Assembler.OpcodeFromString("r>"));
     Assert.Equal(CsEvb.F18A.Opcode.OVER, CsEvb.F18Assembler.OpcodeFromString("over"));
     Assert.Equal(CsEvb.F18A.Opcode.A, CsEvb.F18Assembler.OpcodeFromString("a"));
     Assert.Equal(CsEvb.F18A.Opcode.NOP, CsEvb.F18Assembler.OpcodeFromString("nop"));
-    Assert.Equal(CsEvb.F18A.Opcode.PUSH, CsEvb.F18Assembler.OpcodeFromString("push"));
+    Assert.Equal(CsEvb.F18A.Opcode.PUSH, CsEvb.F18Assembler.OpcodeFromString(">r"));
     Assert.Equal(CsEvb.F18A.Opcode.BSTORE, CsEvb.F18Assembler.OpcodeFromString("b!"));
     Assert.Equal(CsEvb.F18A.Opcode.ASTORE, CsEvb.F18Assembler.OpcodeFromString("a!"));
 
     Assert.Null(CsEvb.F18Assembler.CommandFromString(""));
     Assert.Null(CsEvb.F18Assembler.CommandFromString("xyz"));
 
-    Assert.Equal(CsEvb.F18Assembler.Command.ADD, CsEvb.F18Assembler.CommandFromString("+"));
+    Assert.Equal(CsEvb.F18Assembler.Command.DO_ADD, CsEvb.F18Assembler.CommandFromString("[+]"));
+    Assert.Equal(CsEvb.F18Assembler.Command.SUB, CsEvb.F18Assembler.CommandFromString("-"));
+    Assert.Equal(CsEvb.F18Assembler.Command.MUL, CsEvb.F18Assembler.CommandFromString("*"));
+    Assert.Equal(CsEvb.F18Assembler.Command.DIV, CsEvb.F18Assembler.CommandFromString("/"));
+    Assert.Equal(CsEvb.F18Assembler.Command.MOD, CsEvb.F18Assembler.CommandFromString("MOD"));
+    Assert.Equal(CsEvb.F18Assembler.Command.AND, CsEvb.F18Assembler.CommandFromString("AND"));
+    Assert.Equal(CsEvb.F18Assembler.Command.OR, CsEvb.F18Assembler.CommandFromString("OR"));
+    Assert.Equal(CsEvb.F18Assembler.Command.XOR, CsEvb.F18Assembler.CommandFromString("XOR"));
   }
 
 
@@ -131,7 +140,36 @@ public class UnitTestF18Assembler
     CsEvb.F18A f18a = new();
     CsEvb.F18Assembler ass = new();
 
-    ass.Assemble(f18a, CsEvb.F18A.GetROMSource(CsEvb.F18A.RomType.Basic), true);
+    //ass.Assemble(f18a, CsEvb.F18A.GetROMSource(CsEvb.F18A.RomType.Basic), true);
 
   }
+
+
+  [Fact]
+  public void Test4()
+  {
+    CsEvb.GA144 ga144 = new();
+    System.Text.StringBuilder sb = new();
+    XmlWriter wr = XmlWriter.Create(sb);
+
+    wr.WriteStartDocument();
+    ga144.WriteXml(wr);
+    wr.WriteEndDocument();
+    wr.Flush();
+    wr.Close();
+    wr.Dispose();
+
+    string xml = sb.ToString();
+
+    //StringReader srd = new StringReader(xml);
+
+    //XmlReader rd = XmlReader.Create(srd);
+    //while(rd.Read())
+    //{
+
+    //}
+
+  }
+
+
 }
