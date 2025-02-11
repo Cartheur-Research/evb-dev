@@ -1,19 +1,8 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using static CsEvb.F18Assembler;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using System.Text;
 
 namespace CsEvb
 {
-  public class F18Assembler
+    public class F18Assembler
   {
     private Stack<int> stack_ = [];
     private Stack<int> rstack_ = [];

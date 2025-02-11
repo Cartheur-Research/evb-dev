@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.Intrinsics.Arm;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
-using static CsEvb.F18A;
-using static System.Net.Mime.MediaTypeNames;
+﻿using System.Text;
 
 namespace CsEvb
 {
-  public class F18A
+    public class F18A
   {
     public const uint InvalidValue = 0x80000000;
 

@@ -1,7 +1,4 @@
-﻿using System.Runtime.Intrinsics.Arm;
-using System.Xml.Linq;
-
-namespace CsEvb;
+﻿namespace CsEvb;
 
 public class GA144 : Chip
 {
